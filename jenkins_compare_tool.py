@@ -5,13 +5,12 @@ from pathlib import Path, PurePath
 
 from jenkinsapi.jenkins import Jenkins
 from junitparser import JUnitXml, Failure, Skipped, Error
+import sys
 import yaml
 
 
-#current_dir = Path(__file__).parent.absolute()
-current_dir = Path()
+current_dir = Path()  # current dir
 home_dir = Path.home()
-print(home_dir)
 
 CREDENTIALS_FILE = '.jenkins_compare_tool'
 CREDENTIALS_PATH = [str(PurePath(current_dir, CREDENTIALS_FILE)),
@@ -20,8 +19,8 @@ CREDENTIALS_PATH = [str(PurePath(current_dir, CREDENTIALS_FILE)),
 DEFAULT_JOB_NAME = 'Test_Tower_Yolo_Express'
 
 parser = argparse.ArgumentParser(description='Compare yolo run to a benchmark yolo run.')
-parser.add_argument('--nightly', dest='nightly', help='Nightly run.')
-parser.add_argument('--feature', dest='feature', help='Feature run.')
+parser.add_argument('--nightly', dest='nightly', type=int, required=True, help='Nightly run.')
+parser.add_argument('--feature', dest='feature', type=int, required=True, help='Feature run.')
 parser.add_argument('--jenkins-host', dest='jenkins_host', help='jenkins url')
 parser.add_argument('--jenkins-username', dest='jenkins_username', help='jenkins url')
 parser.add_argument('--jenkins-api-token', dest='jenkins_api_token', help='jenkins url')
@@ -39,11 +38,15 @@ class Credentials:
 creds = Credentials(args.jenkins_host, args.jenkins_username, args.jenkins_api_token)
 
 class Config:
-    def __init__(self, nightly_test_job=None, feature_test_job=None):
+    def __init__(self, nightly_test_job=None, feature_test_job=None,
+            nightly_build=None, feature_build=None):
         self.nightly_test_job = nightly_test_job
         self.feature_test_job = feature_test_job
+        self.nightly_build = nightly_build
+        self.feature_build = feature_build
 
-config = Config(args.nightly_test_job, args.feature_test_job)
+config = Config(args.nightly_test_job, args.feature_test_job,
+                args.nightly, args.feature)
 
 def load_missing_options_from_file(creds, config):
     """Update any missing credentials using any found in config file"""
@@ -106,10 +109,8 @@ def get_test_results(server, job_name, build_number):
     return failures
 
 if __name__ == "__main__":
-    print(f'{args.nightly} {args.feature}')
-
     load_missing_options_from_file(creds, config)
     server = get_server_instance(creds)
-    failures = get_test_results(server, config.nightly_test_job, 18204)
+    failures = get_test_results(server, config.nightly_test_job, config.feature_build)
     for failure in sorted(failures):
         print(failure)
