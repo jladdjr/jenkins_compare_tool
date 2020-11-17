@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import argparse
-import logging
+import coloredlogs, logging
 import os
 from pathlib import Path, PurePath
 import sys
@@ -31,7 +31,7 @@ parser.add_argument('--verbose', '-v', action='count')
 
 args = parser.parse_args()
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 ch = logging.StreamHandler()
@@ -40,9 +40,9 @@ ch.setFormatter(formatter)
 logger.addHandler(ch)
 
 if args.verbose:
-    ch.setLevel(logging.DEBUG)
+    coloredlogs.install(level='DEBUG', logger=logger)
 else:
-    ch.setLevel(logging.INFO)
+    coloredlogs.install(level='INFO', logger=logger)
 
 class Credentials:
     def __init__(self, host=None, username=None, token=None):
@@ -153,17 +153,17 @@ if __name__ == "__main__":
     new_failures = get_test_results(server, config.feature_test_job, config.feature_build)
 
 
-    logger.debug('Nightly failed tests:')
+    logger.info('Nightly failed tests:')
     for failure in old_failures:
-        logger.debug(failure)
-    logger.debug('Feature failed tests:')
+        logger.info(failure)
+    logger.info('Feature failed tests:')
     for failure in old_failures:
-        logger.debug(failure)
+        logger.info(failure)
 
     removed_failures = filter_out_existing_failures(old_failures, new_failures)
-    logger.debug('Existing failed tests found:')
+    logger.info('Existing failed tests found:')
     for failure in removed_failures:
-        logger.debug(failure)
+        logger.info(failure)
 
     print('Remaining failed tests:')
     for failure in new_failures:
