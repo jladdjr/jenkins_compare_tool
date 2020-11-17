@@ -2,11 +2,12 @@
 
 import argparse
 import logging
+import os
 from pathlib import Path, PurePath
+import sys
 
 from jenkinsapi.jenkins import Jenkins
 from junitparser import JUnitXml, Failure, Skipped, Error
-import sys
 import yaml
 
 current_dir = Path()  # current dir
@@ -15,6 +16,8 @@ home_dir = Path.home()
 CREDENTIALS_FILE = '.jenkins_compare_tool'
 CREDENTIALS_PATH = [str(PurePath(current_dir, CREDENTIALS_FILE)),
                     str(PurePath(home_dir, CREDENTIALS_FILE))]
+
+TMP_RESULTS_FILE = '/tmp/test_results.xml'
 
 DEFAULT_JOB_NAME = 'Test_Tower_Yolo_Express'
 
@@ -117,7 +120,11 @@ def get_test_results(server, job_name, build_number):
     build = job.get_build(build_number)
     artifact_dict = build.get_artifact_dict()
     test_results = artifact_dict['artifacts/results.xml']
-    test_results_file = test_results.save('/tmp/test_results.xml')
+    try:
+        os.remove(TMP_RESULTS_FILE)
+    except FileNotFoundError:
+        pass
+    test_results_file = test_results.save(TMP_RESULTS_FILE)
 
     # parse xml junit results
     xml = JUnitXml.fromfile(test_results_file)
