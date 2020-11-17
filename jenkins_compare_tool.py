@@ -95,17 +95,21 @@ def get_test_results(server, job_name, build_number):
 
     # parse xml junit results
     xml = JUnitXml.fromfile(test_results_file)
+    failures = []
     for suite in xml:
-        print(suite)
         for case in suite:
             if case.result:
                 if isinstance(case.result, Failure):
-                    print(case.name)
+                    #print(case.name)
                     #print('  failure ', case.result.message)
+                    failures.append(case.name)
+    return failures
 
 if __name__ == "__main__":
     print(f'{args.nightly} {args.feature}')
 
     load_missing_options_from_file(creds, config)
     server = get_server_instance(creds)
-    get_test_results(server, config.nightly_test_job, 18204)
+    failures = get_test_results(server, config.nightly_test_job, 18204)
+    for failure in sorted(failures):
+        print(failure)
