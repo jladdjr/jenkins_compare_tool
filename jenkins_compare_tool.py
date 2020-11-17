@@ -19,21 +19,21 @@ CREDENTIALS_PATH = [str(PurePath(current_dir, CREDENTIALS_FILE)),
 
 TMP_RESULTS_FILE = '/tmp/test_results.xml'
 
-DEFAULT_JOB_NAME = 'Test_Tower_Yolo_Express'
-
 parser = argparse.ArgumentParser(description='Compare yolo run to a benchmark yolo run.')
 parser.add_argument('--nightly', dest='nightly', type=int, required=True, help='Nightly run.')
 parser.add_argument('--feature', dest='feature', type=int, required=True, help='Feature run.')
 parser.add_argument('--jenkins-host', dest='jenkins_host', help='jenkins url')
 parser.add_argument('--jenkins-username', dest='jenkins_username', help='jenkins url')
 parser.add_argument('--jenkins-api-token', dest='jenkins_api_token', help='jenkins url')
-parser.add_argument('--nightly-test-job', dest='nightly_test_job', help='Name of jenkins job used for nightly tests.')
-parser.add_argument('--feature-test-job', dest='feature_test_job', help='Name of jenkins job used for feature test.')
+parser.add_argument('--nightly-test-job', dest='nightly_test_job', default='Install and Integration', help='Name of jenkins job used for nightly tests.')
+parser.add_argument('--feature-test-job', dest='feature_test_job', default='Test_Tower_Yolo_Express', help='Name of jenkins job used for feature test.')
 parser.add_argument('--verbose', '-v', action='count')
 
 args = parser.parse_args()
+import pdb
+pdb.set_trace()
 
-logger = logging.getLogger('simple_example')
+logger = logging.getLogger(__file__)
 logger.setLevel(logging.DEBUG)
 
 ch = logging.StreamHandler()
@@ -96,12 +96,10 @@ def load_missing_options_from_file(creds, config):
     if not creds.token:
         raise Exception('Jenkins password required')
 
-    if 'nightly_test_job' in keys and config.nightly_test_job is None:
-        config.nightly_test_job = data['nightly_test_job']
-        logger.debug(f'nightly_test_job: {config.nightly_test_job}')
-    if 'feature_test_job' in keys and config.feature_test_job is None:
-        config.feature_test_job = data['feature_test_job']
-        logger.debug(f'feature_test_job: {config.feature_test_job}')
+    config.nightly_test_job = data['nightly_test_job']
+    logger.debug(f'nightly_test_job: {config.nightly_test_job}')
+    config.feature_test_job = data['feature_test_job']
+    logger.debug(f'feature_test_job: {config.feature_test_job}')
 
     if not config.nightly_test_job:
         raise Exception('Nightly Test Job name required')
@@ -114,7 +112,7 @@ def get_server_instance(creds):
     return server
 
 def get_test_results(server, job_name, build_number):
-    logger.debug(f'getting build resuslts for {job_name}, build: {build_number}')
+    logger.debug(f'getting build results for {job_name}, build: {build_number}')
     # get artifact
     job = server.get_job(job_name)
     build = job.get_build(build_number)
@@ -138,9 +136,35 @@ def get_test_results(server, job_name, build_number):
                     failures.append(case.name)
     return failures
 
+def filter_out_existing_failures(old_failures, new_failures):
+    removed_failures = []
+    for failure in old_failures:
+        try:
+            new_failures.remove(failure)
+            removed_failures.append(failure)
+        except ValueError:
+            pass
+    return removed_failures
+
 if __name__ == "__main__":
     load_missing_options_from_file(creds, config)
     server = get_server_instance(creds)
-    failures = get_test_results(server, config.nightly_test_job, config.feature_build)
-    for failure in sorted(failures):
+    old_failures = get_test_results(server, config.nightly_test_job, config.nightly_build)
+    new_failures = get_test_results(server, config.feature_test_job, config.feature_build)
+
+
+    logger.debug('Nightly failed tests:')
+    for failure in old_failures:
+        logger.debug(failure)
+    logger.debug('Feature failed tests:')
+    for failure in old_failures:
+        logger.debug(failure)
+
+    removed_failures = filter_out_existing_failures(old_failures, new_failures)
+    logger.debug('Existing failed tests found:')
+    for failure in removed_failures:
+        logger.debug(failure)
+
+    print('Remaining failed tests:')
+    for failure in new_failures:
         print(failure)
