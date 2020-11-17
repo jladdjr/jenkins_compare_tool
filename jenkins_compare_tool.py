@@ -25,13 +25,11 @@ parser.add_argument('--feature', dest='feature', type=int, required=True, help='
 parser.add_argument('--jenkins-host', dest='jenkins_host', help='jenkins url')
 parser.add_argument('--jenkins-username', dest='jenkins_username', help='jenkins url')
 parser.add_argument('--jenkins-api-token', dest='jenkins_api_token', help='jenkins url')
-parser.add_argument('--nightly-test-job', dest='nightly_test_job', default='Install and Integration', help='Name of jenkins job used for nightly tests.')
+parser.add_argument('--nightly-test-job', dest='nightly_test_job', default='Pipelines/integration-pipeline', help='Name of jenkins job used for nightly tests.')
 parser.add_argument('--feature-test-job', dest='feature_test_job', default='Test_Tower_Yolo_Express', help='Name of jenkins job used for feature test.')
 parser.add_argument('--verbose', '-v', action='count')
 
 args = parser.parse_args()
-import pdb
-pdb.set_trace()
 
 logger = logging.getLogger(__file__)
 logger.setLevel(logging.DEBUG)
@@ -96,10 +94,12 @@ def load_missing_options_from_file(creds, config):
     if not creds.token:
         raise Exception('Jenkins password required')
 
-    config.nightly_test_job = data['nightly_test_job']
-    logger.debug(f'nightly_test_job: {config.nightly_test_job}')
-    config.feature_test_job = data['feature_test_job']
-    logger.debug(f'feature_test_job: {config.feature_test_job}')
+    if 'nightly_test_job' in keys:
+        config.nightly_test_job = data['nightly_test_job']
+        logger.debug(f'nightly_test_job: {config.nightly_test_job}')
+    if 'feature_test_job' in keys:
+        config.feature_test_job = data['feature_test_job']
+        logger.debug(f'feature_test_job: {config.feature_test_job}')
 
     if not config.nightly_test_job:
         raise Exception('Nightly Test Job name required')
