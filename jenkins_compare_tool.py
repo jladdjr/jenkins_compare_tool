@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 
 import argparse
+import logging
 from pathlib import Path, PurePath
 
 from jenkinsapi.jenkins import Jenkins
 from junitparser import JUnitXml, Failure, Skipped, Error
 import sys
 import yaml
-
 
 current_dir = Path()  # current dir
 home_dir = Path.home()
@@ -26,8 +26,22 @@ parser.add_argument('--jenkins-username', dest='jenkins_username', help='jenkins
 parser.add_argument('--jenkins-api-token', dest='jenkins_api_token', help='jenkins url')
 parser.add_argument('--nightly-test-job', dest='nightly_test_job', help='Name of jenkins job used for nightly tests.')
 parser.add_argument('--feature-test-job', dest='feature_test_job', help='Name of jenkins job used for feature test.')
+parser.add_argument('--verbose', '-v', action='count')
 
 args = parser.parse_args()
+
+logger = logging.getLogger('simple_example')
+logger.setLevel(logging.DEBUG)
+
+ch = logging.StreamHandler()
+formatter = logging.Formatter('%(asctime)s %(message)s')
+ch.setFormatter(formatter)
+logger.addHandler(ch)
+
+if args.verbose:
+    ch.setLevel(logging.DEBUG)
+else:
+    ch.setLevel(logging.INFO)
 
 class Credentials:
     def __init__(self, host=None, username=None, token=None):
@@ -50,11 +64,13 @@ config = Config(args.nightly_test_job, args.feature_test_job,
 
 def load_missing_options_from_file(creds, config):
     """Update any missing credentials using any found in config file"""
+    logger.debug(f'loading credentials')
     data = None
     for path in CREDENTIALS_PATH:
         try:
             with open(path, 'r') as f:
                 data = yaml.load(f, Loader=yaml.FullLoader)
+                logger.debug(f'found credentials in {path}')
                 break
         except Exception:
             pass
@@ -62,10 +78,13 @@ def load_missing_options_from_file(creds, config):
     keys = data.keys()
     if 'jenkins_host' in keys and creds.host is None:
         creds.host = data['jenkins_host']
+        logger.debug(f'jenkins_host: {creds.host}')
     if 'username' in keys and creds.user is None:
         creds.user = data['username']
+        logger.debug(f'username: {creds.user}')
     if 'password' in keys and creds.token is None:
         creds.token = data['password']
+        logger.debug(f'password: <omitted>')
 
     if not creds.host:
         raise Exception('Jenkins url required')
@@ -76,8 +95,10 @@ def load_missing_options_from_file(creds, config):
 
     if 'nightly_test_job' in keys and config.nightly_test_job is None:
         config.nightly_test_job = data['nightly_test_job']
+        logger.debug(f'nightly_test_job: {config.nightly_test_job}')
     if 'feature_test_job' in keys and config.feature_test_job is None:
         config.feature_test_job = data['feature_test_job']
+        logger.debug(f'feature_test_job: {config.feature_test_job}')
 
     if not config.nightly_test_job:
         raise Exception('Nightly Test Job name required')
@@ -85,10 +106,12 @@ def load_missing_options_from_file(creds, config):
         raise Exception('Featuer Test Job name required')
 
 def get_server_instance(creds):
+    logger.debug(f'connecting to {creds.host}')
     server = Jenkins(creds.host, username=creds.user, password=creds.token)
     return server
 
 def get_test_results(server, job_name, build_number):
+    logger.debug(f'getting build resuslts for {job_name}, build: {build_number}')
     # get artifact
     job = server.get_job(job_name)
     build = job.get_build(build_number)
