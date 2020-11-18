@@ -39,10 +39,12 @@ formatter = logging.Formatter('%(asctime)s %(message)s')
 ch.setFormatter(formatter)
 logger.addHandler(ch)
 
-if args.verbose:
+if args.verbose == 2:
     coloredlogs.install(level='DEBUG', logger=logger)
-else:
+elif args.verbose == 1:
     coloredlogs.install(level='INFO', logger=logger)
+else:
+    coloredlogs.install(level='CRITICAL', logger=logger)
 
 class Credentials:
     def __init__(self, host=None, username=None, token=None):
