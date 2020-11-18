@@ -85,16 +85,16 @@ def load_missing_options_from_file(creds, config):
     if 'username' in keys and creds.user is None:
         creds.user = data['username']
         logger.debug(f'username: {creds.user}')
-    if 'password' in keys and creds.token is None:
-        creds.token = data['password']
-        logger.debug(f'password: <omitted>')
+    if 'token' in keys and creds.token is None:
+        creds.token = data['token']
+        logger.debug(f'token: <omitted>')
 
     if not creds.host:
         raise Exception('Jenkins url required')
     if not creds.user:
         raise Exception('Jenkins username required')
     if not creds.token:
-        raise Exception('Jenkins password required')
+        raise Exception('Jenkins token required')
 
     if 'nightly_test_job' in keys:
         config.nightly_test_job = data['nightly_test_job']
