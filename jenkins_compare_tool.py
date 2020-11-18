@@ -113,11 +113,12 @@ def get_server_instance(creds):
     server = Jenkins(creds.host, username=creds.user, password=creds.token)
     return server
 
-def get_test_results(server, job_name, build_number):
-    logger.debug(f'getting build results for {job_name}, build: {build_number}')
-    # get artifact
+def get_build(server, job_name, build_number):
+    logger.debug(f'getting build {build_number} for {job_name}')
     job = server.get_job(job_name)
-    build = job.get_build(build_number)
+    return job.get_build(build_number)
+
+def get_test_results(build):
     artifact_dict = build.get_artifact_dict()
     test_results = artifact_dict['artifacts/results.xml']
     try:
@@ -138,6 +139,13 @@ def get_test_results(server, job_name, build_number):
                     failures.append(case.name)
     return failures
 
+def get_build_metadata(build, suppress_description=False):
+    desc = [f"{build.get_build_url()}"]
+    if not suppress_description:
+        desc.append(f"{build.get_description()}")
+    desc.append(f"{str(build.get_timestamp().date())}")
+    return '\n'.join(desc)
+
 def filter_out_existing_failures(old_failures, new_failures):
     removed_failures = []
     for failure in old_failures:
@@ -151,9 +159,10 @@ def filter_out_existing_failures(old_failures, new_failures):
 if __name__ == "__main__":
     load_missing_options_from_file(creds, config)
     server = get_server_instance(creds)
-    old_failures = get_test_results(server, config.nightly_test_job, config.nightly_build)
-    new_failures = get_test_results(server, config.feature_test_job, config.feature_build)
-
+    nightly_build = get_build(server, config.nightly_test_job, config.nightly_build)
+    feature_build = get_build(server, config.feature_test_job, config.feature_build)
+    old_failures = get_test_results(nightly_build)
+    new_failures = get_test_results(feature_build)
 
     logger.info('Nightly failed tests:')
     for failure in old_failures:
@@ -162,11 +171,18 @@ if __name__ == "__main__":
     for failure in old_failures:
         logger.info(failure)
 
-    removed_failures = filter_out_existing_failures(old_failures, new_failures)
-    logger.info('Existing failed tests found:')
-    for failure in removed_failures:
-        logger.info(failure)
+    print("Filtering results for:")
+    print(get_build_metadata(feature_build) + '\n')
+    print("With respect to:")
+    print(get_build_metadata(nightly_build, suppress_description=True) + '\n')
 
-    print('Remaining failed tests:')
+    removed_failures = filter_out_existing_failures(old_failures, new_failures)
+
+    print(f'Filtered failures ({len(removed_failures)}):')
+    for failure in removed_failures:
+        print(f'  {failure}')
+    print()
+
+    print(f'Remaining failures ({len(new_failures)}):')
     for failure in new_failures:
-        print(failure)
+        print(f'  {failure}')
