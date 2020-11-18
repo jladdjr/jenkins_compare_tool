@@ -2,7 +2,7 @@
 
 ## Requirements
 
-`pip install -U -r requirements`
+`pip install -U -r requirements.txt`
 
 ## Sample Usage
 
