@@ -161,14 +161,14 @@ if __name__ == "__main__":
     server = get_server_instance(creds)
     nightly_build = get_build(server, config.nightly_test_job, config.nightly_build)
     feature_build = get_build(server, config.feature_test_job, config.feature_build)
-    old_failures = get_test_results(nightly_build)
-    new_failures = get_test_results(feature_build)
+    old_failures = sorted(get_test_results(nightly_build))
+    new_failures = sorted(get_test_results(feature_build))
 
     logger.info('Nightly failed tests:')
     for failure in old_failures:
         logger.info(failure)
     logger.info('Feature failed tests:')
-    for failure in old_failures:
+    for failure in new_failures:
         logger.info(failure)
 
     print("Filtering results for:")
