@@ -17,6 +17,9 @@ CREDENTIALS_FILE = '.jenkins_compare_tool'
 CREDENTIALS_PATH = [str(PurePath(current_dir, CREDENTIALS_FILE)),
                     str(PurePath(home_dir, CREDENTIALS_FILE))]
 
+DEFAULT_NIGHTLY_JOB = 'Pipelines/integration-pipeline'
+DEFAULT_FEATURE_JOB = 'Test_Tower_Yolo_Express'
+
 TMP_RESULTS_FILE = '/tmp/test_results.xml'
 
 parser = argparse.ArgumentParser(description='Compare yolo run to a benchmark yolo run.')
@@ -25,8 +28,8 @@ parser.add_argument('--feature', dest='feature', type=int, required=True, help='
 parser.add_argument('--jenkins-host', dest='jenkins_host', help='jenkins url')
 parser.add_argument('--jenkins-username', dest='jenkins_username', help='jenkins url')
 parser.add_argument('--jenkins-api-token', dest='jenkins_api_token', help='jenkins url')
-parser.add_argument('--nightly-test-job', dest='nightly_test_job', default='Pipelines/integration-pipeline', help='Name of jenkins job used for nightly tests.')
-parser.add_argument('--feature-test-job', dest='feature_test_job', default='Test_Tower_Yolo_Express', help='Name of jenkins job used for feature test.')
+parser.add_argument('--nightly-test-job', dest='nightly_test_job', help='Name of jenkins job used for nightly tests.')
+parser.add_argument('--feature-test-job', dest='feature_test_job', help='Name of jenkins job used for feature test.')
 parser.add_argument('--verbose', '-v', action='count')
 
 args = parser.parse_args()
@@ -96,12 +99,18 @@ def load_missing_options_from_file(creds, config):
     if not creds.token:
         raise Exception('Jenkins token required')
 
-    if 'nightly_test_job' in keys:
-        config.nightly_test_job = data['nightly_test_job']
-        logger.debug(f'nightly_test_job: {config.nightly_test_job}')
-    if 'feature_test_job' in keys:
-        config.feature_test_job = data['feature_test_job']
-        logger.debug(f'feature_test_job: {config.feature_test_job}')
+    if config.nightly_test_job is None:
+        if 'nightly_test_job' in keys:
+            config.nightly_test_job = data['nightly_test_job']
+        else:
+            config.nightly_test_job = DEFAULT_NIGHTLY_JOB
+    logger.debug(f'nightly_test_job: {config.nightly_test_job}')
+    if config.feature_test_job is None:
+        if 'feature_test_job' in keys:
+            config.feature_test_job = data['feature_test_job']
+        else:
+            config.feature_test_job = DEFAULT_FEATURE_JOB
+    logger.debug(f'feature_test_job: {config.feature_test_job}')
 
     if not config.nightly_test_job:
         raise Exception('Nightly Test Job name required')
